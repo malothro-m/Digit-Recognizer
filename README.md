@@ -3,9 +3,29 @@
 
 This repository contains a deep learning implementation of **multi-digit handwritten number recognition** using a **Convolutional Recurrent Neural Network (CRNN)**. The model is built using **TensorFlow** and **Keras**, leveraging a **CNN (Convolutional Neural Network)** as an encoder and **Bidirectional LSTM (Long Short-Term Memory)** as a decoder, trained on the **MNIST dataset**. 
 
-### Project Overview
+# CRNN-based OCR for Multi-Digit Recognition using CTC Loss
 
-The goal of this project is to develop a deep learning model capable of recognizing sequences of digits (e.g., multi-digit numbers) from a single image. The model uses the **Connectionist Temporal Classification (CTC)** loss function to train the network on sequential data, where the alignment between the input (image) and the output (digits) is unknown. This is particularly useful for handwriting recognition, where the length of the sequence and the exact alignment of the digits in the image can vary.
+This repository implements an Optical Character Recognition (OCR) model using a Convolutional Recurrent Neural Network (CRNN) architecture with Connectionist Temporal Classification (CTC) loss. The model is trained to recognize sequences of three consecutive digits, built on the MNIST dataset.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Setup](#setup)
+- [Dataset Preparation](#dataset-preparation)
+- [Model Architecture](#model-architecture)
+- [Training the Model](#training-the-model)
+- [Evaluation and Prediction](#evaluation-and-prediction)
+- [Concepts Used](#concepts-used)
+- [Why the Specific Techniques Were Used](#why-the-specific-techniques-were-used)
+- [Examples](#examples)
+
+---
+
+## Overview
+
+The code trains a CRNN model to recognize sequences of three consecutive digits (e.g., `123`) using the MNIST dataset. By stacking images of digits horizontally, the model learns to recognize digit sequences in images of shape `28x84` (three MNIST digits side-by-side). This approach is designed for OCR tasks where sequence prediction is required. The CTC loss function allows the model to output variable-length predictions without the need for fixed alignment between input and output.
 
 ### Key Features
 
@@ -19,52 +39,6 @@ The goal of this project is to develop a deep learning model capable of recogniz
 
 ---
 
-## Why the Specific Techniques Were Used
-
-### 1. **Convolutional Neural Networks (CNNs)**
-   - **Why CNN?**
-     CNNs are highly effective for image processing tasks due to their ability to automatically learn hierarchical features from raw pixel data. 
-     - **Feature Extraction**: The early layers of a CNN automatically detect low-level features like edges, corners, and textures, while deeper layers learn more complex patterns.
-     - **Spatial Invariance**: CNNs are good at learning spatial hierarchies, making them particularly useful for interpreting images.
-
-   - **Why Used in This Project?**
-     CNNs are used to extract visual features from the MNIST images (i.e., digits). Since we are working with images, CNNs can help capture the necessary spatial patterns, such as the shape of the digits, which are essential for recognition tasks.
-
-### 2. **Bidirectional LSTM (Bi-LSTM)**
-   - **Why LSTM?**
-     LSTMs are a type of recurrent neural network (RNN) specifically designed to handle long-term dependencies in sequential data. They are capable of remembering information for long periods, which is crucial for tasks that require context or understanding over time, like handwriting.
-     - **Bidirectional LSTM**: A Bi-LSTM processes the sequence in both forward and backward directions. This allows the network to consider both past and future context when predicting each output, which is helpful for sequences where the interpretation of one digit depends on both previous and future digits in the sequence.
-
-   - **Why Used in This Project?**
-     The LSTM is used as a sequence model to process the features extracted by the CNN. Since we're predicting multi-digit numbers (a sequence), the Bi-LSTM allows the model to capture temporal dependencies across the digits in the sequence, improving accuracy in recognizing the entire sequence of digits.
-
-### 3. **Connectionist Temporal Classification (CTC) Loss**
-   - **Why CTC Loss?**
-     CTC loss is ideal for sequence-to-sequence tasks where the alignment between input and output is unknown. In the context of handwriting recognition, the number of digits in the sequence and their positions in the image may vary.
-     - **Flexible Alignment**: CTC allows the model to predict sequences of different lengths without the need for precise alignment between input pixels and output digits. This is crucial when the number of digits in an image can vary, or when the image may contain noise or distortions.
-     - **No Need for Segmentation**: CTC loss eliminates the need for explicit segmentation of the input sequence (i.e., separating individual digits), simplifying the problem.
-
-   - **Why Used in This Project?**
-     The MNIST dataset consists of images where each image contains a single digit, but we are stacking consecutive digits horizontally to form a multi-digit number. Since we do not know where one digit ends and another begins (the alignment is unknown), CTC loss is used to train the model effectively without explicit segmentation of the digits.
-
-### 4. **Data Augmentation**
-   - **Why Augment Data?**
-     Data augmentation techniques, such as rotation, scaling, and shifting, artificially increase the diversity of the dataset. This helps the model generalize better by exposing it to different variations of the input data, which can prevent overfitting and improve performance on unseen data.
-
-   - **Why Used in This Project?**
-     The model is trained on a limited dataset of MNIST digits, so augmenting the data helps simulate real-world variations such as rotated or shifted digits. For multi-digit recognition, this is particularly important as digits might appear in different orientations, placements, and sizes in real-world images.
-
-### 5. **Multi-Digit Sequence Generation**
-   - **Why Stack Images?**
-     The MNIST dataset contains single digits, but for this task, we need multi-digit sequences. By stacking consecutive MNIST images horizontally, we create synthetic multi-digit numbers.
-     - **Why Use Sequence Input?**
-       The model is designed to predict multi-digit numbers from stacked digit images, simulating how multi-digit numbers are written and scanned in real-world applications like automatic number plate recognition (ANPR) or optical character recognition (OCR).
-
-   - **Why Used in This Project?**
-     Stacking digits horizontally allows the model to learn how to read multi-digit numbers from a single image. By feeding stacked images into the model, we simulate real-world applications where sequences of digits are often written in a single line (e.g., credit card numbers or postal codes).
-
----
-
 ## Setup
 
 ### Requirements
@@ -73,11 +47,111 @@ The goal of this project is to develop a deep learning model capable of recogniz
 - TensorFlow (2.x)
 - NumPy
 - Matplotlib
-- Git
+  
+## Dataset Preparation
+The code loads the MNIST dataset and then preprocesses it to create images of three-digit sequences. Each sequence is created by stacking three consecutive MNIST digit images horizontally.
+```python
+def load_multi_digit_mnist():
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    # Normalization and stacking steps
+    return x_train_multi, y_train_multi, x_test_multi, y_test_multi
+```
 
-### Installation
+The function `load_multi_digit_mnist` returns processed `x_train`, `y_train`, `x_test`, and `y_test` datasets, where each image is a concatenation of three digits.
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/your-username/your-repository.git
-   cd your-repository
+## Model Architecture
+The CRNN model architecture consists of:
+
+- **Convolutional Neural Network (CNN)** layers for feature extraction.
+- **Bidirectional LSTM** layers for sequence modeling.
+- **CTC Loss layer** for handling alignment between input and output sequences.
+
+```python
+def build_crnn_model(input_shape=(28, 28*3, 1), num_classes=10):
+    # Define CNN layers
+    # Define Bi-directional LSTM layers
+    # Define Dense layer and CTC Loss layer
+    return model, prediction_model
+```
+
+- **CNN Layers**: Extract spatial features from images.
+- **Bi-directional LSTM Layers**: Learn dependencies in the sequence.
+- **Dense Layer**: Outputs probabilities for each digit class.
+- **CTC Loss Layer**: Allows sequence alignment between input images and predicted digit sequences.
+
+The code defines both a model for training with CTC loss and a `prediction_model` for inference.
+
+## Training the Model
+The model is trained using a data generator (`CTCAugmentedDataGenerator`) that performs data augmentation and provides additional inputs required for CTC loss:
+
+```python
+train_gen = CTCAugmentedDataGenerator(x_train, y_train, batch_size=32)
+epochs = 8
+
+model.fit(
+    train_gen,
+    epochs=epochs,
+    validation_data=(
+        [x_test_tensor, y_test_tensor, input_length_test_tensor, label_length_test_tensor],
+        tf.convert_to_tensor(np.zeros(len(x_test)), dtype=tf.float32),
+    ),
+)
+```
+
+- **Batch Size**: Set to 32.
+- **Epochs**: 8 (can be adjusted for accuracy vs. training time).
+- **Validation Data**: Preprocessed test data with CTC-specific inputs.
+
+## Evaluation and Prediction
+The model is evaluated on test data, and predictions are made using the `prediction_model`. CTC decoding is applied to interpret the predicted sequences of digits.
+
+```python
+def decode_predictions(preds):
+    # Decode CTC predictions
+    return tf.keras.backend.get_value(decoded)
+
+test_preds = prediction_model.predict(x_test)
+decoded_preds = decode_predictions(test_preds)
+```
+
+The predictions are displayed alongside the test images for visual validation.
+
+## Concepts Used
+1. **Convolutional Neural Networks (CNNs)**: Specialized for processing spatial data. CNN layers extract spatial features (edges, shapes) from each image.
+
+2. **Recurrent Neural Networks (RNNs) and LSTMs**: Used for sequence data, with Bi-directional LSTM layers capturing forward and backward dependencies in digit sequences.
+
+3. **Connectionist Temporal Classification (CTC)**: Allows sequence prediction where the length of the input does not match the output, ideal for OCR tasks.
+
+4. **Data Augmentation**: Improves generalization by applying rotations, shifts, and zoom transformations, creating more varied training data.
+
+## Why the Specific Techniques Were Used
+
+### 1. **Convolutional Neural Networks (CNNs)**
+   - CNNs are effective for image processing tasks and spatial feature extraction, crucial for recognizing digit shapes in images.
+
+### 2. **Bidirectional LSTM (Bi-LSTM)**
+   - LSTM layers capture temporal dependencies, and Bi-LSTM layers provide both past and future context, improving multi-digit sequence recognition.
+
+### 3. **Connectionist Temporal Classification (CTC) Loss**
+   - CTC loss allows sequence prediction without precise alignment, ideal for multi-digit OCR tasks where segmentation is challenging.
+
+### 4. **Data Augmentation**
+   - Augmenting data simulates real-world variations, improving model robustness.
+
+### 5. **Multi-Digit Sequence Generation**
+   - Stacking MNIST images horizontally enables recognition of multi-digit numbers, useful for applications like license plate or postal code recognition.
+
+## Examples
+Below are examples of predicted sequences alongside input images. Each image shows a sequence of three digits, and the predicted output is displayed above.
+
+```python
+for i in range(5):
+    plt.imshow(x_test[i].reshape(28, 28 * 3), cmap="gray")
+    plt.title(f"Predicted: {''.join(map(str, decoded_preds[i]))}")
+    plt.show()
+```
+
+## Summary
+This project demonstrates a CRNN-based OCR model for multi-digit recognition using CTC loss. The model learns to recognize digit sequences in images and can generalize to varying sequence lengths, thanks to CTC. It is well-suited for OCR tasks where sequence prediction is required, such as reading license plates or text in natural images.
+
